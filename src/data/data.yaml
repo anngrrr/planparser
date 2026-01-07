@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 15
+names: ['bathtub', 'bed', 'bed2', 'chair', 'door', 'door2', 'shower', 'sink', 'sofa1', 'sofa2', 'sofa3', 'stove', 'table', 'toilet', 'vanity']
+
+roboflow:
+  workspace: research-g8szb
+  project: floorplan-details-fork
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1

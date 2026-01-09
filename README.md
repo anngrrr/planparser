@@ -1,1 +1,1 @@
-[Lind for data downloading](https://universe.roboflow.com/research-g8szb/floorplan-details-fork)
+[Lind for data downloading](https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1)

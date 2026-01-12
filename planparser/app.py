@@ -2,6 +2,7 @@
 import os
 import io
 import time
+import tempfile
 import random
 from pathlib import Path
 
@@ -21,7 +22,7 @@ EXAMPLES_DIR = os.getenv("EXAMPLES_DIR")
 
 MODEL_MAP = {
     "yolo11l_custom": os.getenv("MODEL_1"),
-    "yolo11l": os.getenv("MODEL_2"),
+    "custom": os.getenv("MODEL_2"),
 }
 MODEL_MAP = {k: v for k, v in MODEL_MAP.items() if v}
 
@@ -56,7 +57,7 @@ CLASS_NAME_MAP = {
 }
 
 
-def _collect_example_images(max_n: int = 20) -> list[str]:
+def _collect_example_images(max_n: int = 30) -> list[str]:
     if not EXAMPLES_DIR:
         return []
     p = Path(EXAMPLES_DIR).expanduser().resolve()
@@ -117,11 +118,20 @@ def _counts_df(dets: list[dict]) -> pd.DataFrame:
         return pd.DataFrame(columns=["Element", "Qty"])
 
     pretty = df["class_name"].map(_pretty_name)
-    return (
+    out = (
         pretty.value_counts()
         .rename_axis("Element")
         .reset_index(name="Qty")
     )
+    return out.sort_values("Element").reset_index(drop=True)
+
+def export_df(df: pd.DataFrame):
+    if df is None or df.empty:
+        return None
+    d = tempfile.mkdtemp(prefix="planparser_")
+    path = os.path.join(d, "element_schedule.csv")
+    df.to_csv(path, index=False)
+    return path
 
 
 def _request_predict(model_label: str, img: Image.Image) -> tuple[list[dict], float, str | None]:
@@ -147,36 +157,68 @@ def _request_predict(model_label: str, img: Image.Image) -> tuple[list[dict], fl
 
 
 def run_predict(model_label: str, img: Image.Image):
+    empty_df = _counts_df([])
+
     if img is None or not model_label:
-        return None, "", _counts_df([]), []
+        return (
+            None,
+            "",
+            empty_df,
+            [],
+            gr.update(value=None, visible=False),  # out_csv
+            gr.update(visible=False),              # raw_acc
+        )
 
     dets, dt, err = _request_predict(model_label, img)
     time_md = f"_processing time: {dt:.3f} s_"
 
     if err is not None:
-        return None, time_md, _counts_df([]), dets
+        return (
+            None,
+            time_md,
+            empty_df,
+            dets,
+            gr.update(value=None, visible=False),
+            gr.update(visible=False),
+        )
 
     vis = _draw_detections(img, dets)
     df_counts = _counts_df(dets)
-    return vis, time_md, df_counts, dets
+    csv_path = export_df(df_counts)
+
+    return (
+        vis,
+        time_md,
+        df_counts,
+        dets,
+        gr.update(value=csv_path, visible=bool(csv_path)),
+        gr.update(visible=bool(dets)),
+    )
 
 
 def maybe_autorun(model_label: str, img: Image.Image, auto_run: bool):
     if not auto_run:
-        return gr.update(), gr.update(), gr.update(), gr.update()
+        return (
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+        )
     return run_predict(model_label, img)
 
 
-with gr.Blocks(title="YOLO detection demo") as demo:
-    gr.Markdown("# YOLO detection demo")
+with gr.Blocks(title="Architectural plan elements detection") as demo:
+    gr.Markdown("# Architectural plan elements detection")
 
     with gr.Row():
         with gr.Column(scale=1):
             model_dd = gr.Dropdown(choices=MODEL_CHOICES, value=DEFAULT_MODEL, label="Model")
 
-            img_in = gr.Image(type="pil", label="Image", sources=["upload"], height=220)
+            img_in = gr.Image(type="pil", label="Image", sources=["upload"], height=168)
 
-            ex = _collect_example_images(max_n=20)
+            ex = _collect_example_images(max_n=30)
             if ex:
                 gr.Examples(examples=ex, inputs=img_in, label="Examples")
 
@@ -184,35 +226,39 @@ with gr.Blocks(title="YOLO detection demo") as demo:
             btn = gr.Button("Submit")
 
         with gr.Column(scale=2):
-            out_img = gr.Image(type="pil", label="Result", height=600)
+            out_img = gr.Image(type="pil", label="Result", height=640)
             out_time = gr.Markdown(value="")
+
             out_df = gr.Dataframe(
-                label="Elements on plan",
+                # label="Element schedule",
                 headers=["Element", "Qty"],
                 datatype=["str", "number"],
                 row_count=(0, "dynamic"),
                 column_count=(2, "fixed"),
                 wrap=True,
+                type="pandas",
             )
 
-            with gr.Accordion("Raw detections", open=False):
+            out_csv = gr.File(label="Download schedule", visible=False)
+
+            with gr.Accordion("Raw detections", open=False, visible=False) as raw_acc:
                 out_json = gr.JSON(label="Detections")
 
     btn.click(
         run_predict,
         inputs=[model_dd, img_in],
-        outputs=[out_img, out_time, out_df, out_json],
+        outputs=[out_img, out_time, out_df, out_json, out_csv, raw_acc],
     )
 
     img_in.change(
         maybe_autorun,
         inputs=[model_dd, img_in, auto],
-        outputs=[out_img, out_time, out_df, out_json],
+        outputs=[out_img, out_time, out_df, out_json, out_csv, raw_acc],
     )
     model_dd.change(
         maybe_autorun,
         inputs=[model_dd, img_in, auto],
-        outputs=[out_img, out_time, out_df, out_json],
+        outputs=[out_img, out_time, out_df, out_json, out_csv, raw_acc],
     )
 
 if __name__ == "__main__":

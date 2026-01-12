@@ -1,12 +1,15 @@
 [project]
 name = "planparser"
 version = "0.1.0"
-description = "Add your description here"
+description = "Architectural plan elements detection"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "gradio>=6.2.0",
+    "python-dotenv>=1.2.1",
     "requests>=2.32.5",
+    "gradio>=6.2.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.30.0",
     "torch>=2.9.1",
     "torchvision>=0.24.1",
     "ultralytics>=8.3.243",
@@ -15,5 +18,4 @@ dependencies = [
 [dependency-groups]
 dev = [
     "jupyterlab>=4.5.1",
-    "python-dotenv>=1.2.1",
 ]

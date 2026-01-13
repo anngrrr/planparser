@@ -255,6 +255,13 @@ with gr.Blocks(title="Architectural plan elements detection") as demo:
         inputs=[model_dd, img_in, auto],
         outputs=[out_img, out_time, out_df, out_json, out_csv, raw_acc],
     )
+
+    img_in.upload(
+        maybe_autorun,
+        inputs=[model_dd, img_in, auto],
+        outputs=[out_img, out_time, out_df, out_json, out_csv, raw_acc],
+    )
+
     model_dd.change(
         maybe_autorun,
         inputs=[model_dd, img_in, auto],

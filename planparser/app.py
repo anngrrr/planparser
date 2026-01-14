@@ -25,6 +25,29 @@ MODEL_DIR = os.getenv("MODEL_DIR")
 MODEL_1 = os.getenv("MODEL_1")
 MODEL_2 = os.getenv("MODEL_2")
 
+
+def _resolve_models_dir() -> str | None:
+    if not MODEL_DIR:
+        return None
+
+    p = Path(MODEL_DIR).expanduser().resolve()
+
+    # local folder
+    if p.exists() and p.is_dir():
+        return str(p)
+
+    # HF model repo_id
+    patterns = [x for x in [MODEL_1, MODEL_2] if x] or ["*.pt"]
+    local = snapshot_download(
+        repo_id=MODEL_DIR.strip(),
+        repo_type="model",
+        allow_patterns=patterns,
+        local_dir="/tmp/models_repo",
+        local_dir_use_symlinks=False,
+    )
+    return str(Path(local).resolve())
+
+
 def join_pt(folder: str | None, name: str | None) -> str | None:
     if not folder or not name:
         return None
@@ -33,9 +56,12 @@ def join_pt(folder: str | None, name: str | None) -> str | None:
         return str(p)
     return None
 
+
+RESOLVED_MODEL_DIR = _resolve_models_dir()
+
 MODEL_MAP = {
-    "yolo11l_custom": join_pt(MODEL_DIR, MODEL_1),
-    "custom": join_pt(MODEL_DIR, MODEL_2),
+    "yolo11l_custom": join_pt(RESOLVED_MODEL_DIR, MODEL_1),
+    "custom": join_pt(RESOLVED_MODEL_DIR, MODEL_2),
 }
 MODEL_MAP = {k: v for k, v in MODEL_MAP.items() if v}
 
@@ -87,7 +113,7 @@ def _collect_example_images(max_n: int = 30) -> list[str]:
         )
         p = Path(local)
 
-    exts = (".jpg")
+    exts = (".jpg",)
     files = [f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in exts]
     if not files:
         return []
@@ -148,6 +174,7 @@ def _counts_df(dets: list[dict]) -> pd.DataFrame:
     )
     return out.sort_values("Element").reset_index(drop=True)
 
+
 def export_df(df: pd.DataFrame):
     if df is None or df.empty:
         return None
@@ -188,8 +215,8 @@ def run_predict(model_label: str, img: Image.Image):
             "",
             empty_df,
             [],
-            gr.update(value=None, visible=False),  # out_csv
-            gr.update(visible=False),              # raw_acc
+            gr.update(value=None, visible=False),
+            gr.update(visible=False),
         )
 
     dets, dt, err = _request_predict(model_label, img)
@@ -253,7 +280,6 @@ with gr.Blocks(title="Planparser") as demo:
             out_time = gr.Markdown(value="")
 
             out_df = gr.Dataframe(
-                # label="Element schedule",
                 headers=["Element", "Qty"],
                 datatype=["str", "number"],
                 row_count=(0, "dynamic"),

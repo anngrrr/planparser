@@ -21,15 +21,27 @@ if not API_URL:
 
 EXAMPLES_DIR = os.getenv("EXAMPLES_DIR")
 
+MODEL_DIR = os.getenv("MODEL_DIR")
+MODEL_1 = os.getenv("MODEL_1")
+MODEL_2 = os.getenv("MODEL_2")
+
+def join_pt(folder: str | None, name: str | None) -> str | None:
+    if not folder or not name:
+        return None
+    p = (Path(folder).expanduser() / name).resolve()
+    if p.is_file() and p.suffix.lower() == ".pt":
+        return str(p)
+    return None
+
 MODEL_MAP = {
-    "yolo11l_custom": os.getenv("MODEL_1"),
-    "custom": os.getenv("MODEL_2"),
+    "yolo11l_custom": join_pt(MODEL_DIR, MODEL_1),
+    "custom": join_pt(MODEL_DIR, MODEL_2),
 }
 MODEL_MAP = {k: v for k, v in MODEL_MAP.items() if v}
 
 MODEL_CHOICES = list(MODEL_MAP.keys())
-if len(MODEL_CHOICES) != 2:
-    raise RuntimeError("Exactly two models must be set: MODEL_1 and MODEL_2")
+if not MODEL_CHOICES:
+    raise RuntimeError("No valid .pt models found via MODEL_DIR + MODEL_1/MODEL_2")
 
 DEFAULT_MODEL = MODEL_CHOICES[0]
 
@@ -80,8 +92,8 @@ def _collect_example_images(max_n: int = 30) -> list[str]:
     if not files:
         return []
 
-    k = min(max_n, len(files))
-    return [str(x) for x in random.sample(files, k=k)]
+    random.shuffle(files)
+    return [str(x) for x in files[:min(max_n, len(files))]]
 
 
 def _hex2rgb(h: str) -> tuple[int, int, int]:
@@ -154,7 +166,7 @@ def _request_predict(model_label: str, img: Image.Image) -> tuple[list[dict], fl
     r = requests.post(
         f"{API_URL}/predict",
         files={"file": ("image.jpg", buf, "image/jpeg")},
-        data={"model_name": MODEL_MAP[model_label]},
+        data={"weights_path": MODEL_MAP[model_label]},
         timeout=60,
     )
     dt = time.perf_counter() - t0
@@ -220,7 +232,7 @@ def maybe_autorun(model_label: str, img: Image.Image, auto_run: bool):
     return run_predict(model_label, img)
 
 
-with gr.Blocks(title="Architectural plan elements detection") as demo:
+with gr.Blocks(title="Planparser") as demo:
     gr.Markdown("# Architectural plan elements detection")
 
     with gr.Row():
@@ -281,5 +293,3 @@ with gr.Blocks(title="Architectural plan elements detection") as demo:
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
-
-# uv run gradio planparser/app.py

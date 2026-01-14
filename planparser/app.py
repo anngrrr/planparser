@@ -10,6 +10,7 @@ import gradio as gr
 import requests
 import pandas as pd
 from PIL import Image, ImageDraw
+from huggingface_hub import snapshot_download
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -60,11 +61,21 @@ CLASS_NAME_MAP = {
 def _collect_example_images(max_n: int = 30) -> list[str]:
     if not EXAMPLES_DIR:
         return []
-    p = Path(EXAMPLES_DIR).expanduser().resolve()
-    if not p.exists() or not p.is_dir():
-        return []
 
-    exts = (".jpg", ".jpeg", ".png", ".webp")
+    p = Path(EXAMPLES_DIR).expanduser().resolve()
+
+    # if not a local folder, assume the dataset repo_id
+    if not (p.exists() and p.is_dir()):
+        local = snapshot_download(
+            repo_id=EXAMPLES_DIR.strip(),
+            repo_type="dataset",
+            allow_patterns=["*.jpg"],
+            local_dir="/tmp/examples_ds",
+            local_dir_use_symlinks=False,
+        )
+        p = Path(local)
+
+    exts = (".jpg")
     files = [f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in exts]
     if not files:
         return []

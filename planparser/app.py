@@ -107,13 +107,13 @@ def _collect_example_images(max_n: int = 30) -> list[str]:
         local = snapshot_download(
             repo_id=EXAMPLES_DIR.strip(),
             repo_type="dataset",
-            allow_patterns=["*.jpg"],
+            allow_patterns=["*.jpg", "*.jpeg", "*.png", "*.webp"],
             local_dir="/tmp/examples_ds",
             local_dir_use_symlinks=False,
         )
         p = Path(local)
 
-    exts = (".jpg",)
+    exts = (".jpg", ".jpeg", ".png", ".webp")
     files = [f for f in p.rglob("*") if f.is_file() and f.suffix.lower() in exts]
     if not files:
         return []

@@ -1,0 +1,40 @@
+PLANPARSER NONCOMMERCIAL LICENSE v1.0
+
+Copyright (c) 2026 Anna Grabetskaia
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, and distribute the Software, subject to the following conditions:
+
+1. Non-Commercial Use Only
+You may use the Software only for non-commercial purposes.
+"Commercial Use" means any use that is primarily intended for or directed toward commercial advantage or monetary compensation, including but not limited to:
+- selling the Software or providing it as part of a paid product or service
+- offering hosted access (SaaS) as part of a business activity
+- using the Software internally within a for-profit organization for business purposes
+- using the Software in consulting or client work (paid or unpaid when tied to a commercial engagement)
+
+2. Attribution Required
+If you distribute, publish, or publicly display the Software or any Derivative Works (including a hosted version, screenshots, videos, blog posts, presentations, or demos), you must provide clear attribution to the author.
+At minimum, include:
+- "planparser by Anna Grabetskaia"
+- a link to the original repository or project page
+- a notice of any changes if you modified the Software
+
+3. Derivative Works
+You may create and distribute Derivative Works only under this license and only for non-commercial purposes, with attribution as required above.
+
+4. No Trademark Rights
+This license does not grant permission to use the author’s name, logos, or trademarks beyond the attribution requirement.
+
+5. Third-Party Licenses
+The Software may include or depend on third-party components under their own licenses. You must comply with those licenses.
+
+6. Disclaimer of Warranty
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+7. Limitation of Liability
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Termination
+Any violation of this license automatically terminates your rights under this license.
+
+For commercial licensing, contact the author.

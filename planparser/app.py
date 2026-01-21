@@ -1,4 +1,3 @@
-# planparser/app.py
 import os
 import io
 import time
@@ -61,9 +60,12 @@ RESOLVED_MODEL_DIR = _resolve_models_dir()
 
 MODEL_MAP = {
     "yolo11l_custom": join_pt(RESOLVED_MODEL_DIR, MODEL_1),
-    "custom": join_pt(RESOLVED_MODEL_DIR, MODEL_2),
+    "fasterrcnn_resnet50.pt": join_pt(RESOLVED_MODEL_DIR, MODEL_2),
 }
 MODEL_MAP = {k: v for k, v in MODEL_MAP.items() if v}
+
+def _model_type(model_label: str) -> str:
+    return "fasterrcnn" if "fasterrcnn" in model_label.lower() else "yolo"
 
 MODEL_CHOICES = list(MODEL_MAP.keys())
 if not MODEL_CHOICES:
@@ -130,21 +132,24 @@ def _pretty_name(raw: str) -> str:
     return CLASS_NAME_MAP.get(raw, raw)
 
 
-def _color_for_det(det: dict) -> tuple[int, int, int]:
+def _color_for_det(det: dict, model_type: str) -> tuple[int, int, int]:
     cls_id = det.get("class_id", None)
     if cls_id is None:
         name = det.get("class_name", "")
         cls_id = abs(hash(name))
+    else:
+        if model_type == "fasterrcnn":
+            cls_id = cls_id - 1
     return _hex2rgb(_PALETTE[int(cls_id) % len(_PALETTE)])
 
 
-def _draw_detections(img: Image.Image, dets: list[dict]) -> Image.Image:
+def _draw_detections(img: Image.Image, dets: list[dict], model_type: str) -> Image.Image:
     out = img.copy().convert("RGB")
     d = ImageDraw.Draw(out)
 
     for det in dets:
         x1, y1, x2, y2 = det["xyxy"]
-        color = _color_for_det(det)
+        color = _color_for_det(det, model_type)
 
         d.rectangle([x1, y1, x2, y2], outline=color, width=2)
 
@@ -193,13 +198,16 @@ def _request_predict(model_label: str, img: Image.Image) -> tuple[list[dict], fl
     r = requests.post(
         f"{API_URL}/predict",
         files={"file": ("image.jpg", buf, "image/jpeg")},
-        data={"weights_path": MODEL_MAP[model_label]},
+        data={
+            "weights_path": MODEL_MAP[model_label],
+            "model_type": _model_type(model_label),
+        },
         timeout=60,
     )
     dt = time.perf_counter() - t0
 
     if r.status_code != 200:
-        return [{"error": r.text}], dt, "error"
+        return [{"error": r.text}], dt, r.text
 
     data = r.json()
     dets = data.get("detections", []) or []
@@ -225,14 +233,16 @@ def run_predict(model_label: str, img: Image.Image):
     if err is not None:
         return (
             None,
-            time_md,
+            f"_processing time: {dt:.3f} s_\n\n**API error:**\n{err}",
             empty_df,
             dets,
             gr.update(value=None, visible=False),
-            gr.update(visible=False),
+            gr.update(visible=True, open=True),
         )
 
-    vis = _draw_detections(img, dets)
+    mt = _model_type(model_label)
+    vis = _draw_detections(img, dets, mt)
+
     df_counts = _counts_df(dets)
     csv_path = export_df(df_counts)
 

@@ -59,13 +59,25 @@ def join_pt(folder: str | None, name: str | None) -> str | None:
 RESOLVED_MODEL_DIR = _resolve_models_dir()
 
 MODEL_MAP = {
-    "yolo11l_custom": join_pt(RESOLVED_MODEL_DIR, MODEL_1),
-    "fasterrcnn_resnet50.pt": join_pt(RESOLVED_MODEL_DIR, MODEL_2),
+    "YOLO11 Large": {
+        "model_type": "yolo",
+        "weights_path": join_pt(RESOLVED_MODEL_DIR, MODEL_1),
+        "conf": 0.25,
+    },
+    "Faster R-CNN": {
+        "model_type": "fasterrcnn",
+        "weights_path": join_pt(RESOLVED_MODEL_DIR, MODEL_2),
+        "conf": 0.25,
+    },
 }
+
 MODEL_MAP = {k: v for k, v in MODEL_MAP.items() if v}
 
 def _model_type(model_label: str) -> str:
-    return "fasterrcnn" if "fasterrcnn" in model_label.lower() else "yolo"
+    info = MODEL_MAP.get(model_label)
+    mt = info.get("model_type")
+    return mt
+
 
 MODEL_CHOICES = list(MODEL_MAP.keys())
 if not MODEL_CHOICES:
@@ -195,14 +207,18 @@ def _request_predict(model_label: str, img: Image.Image) -> tuple[list[dict], fl
     buf.seek(0)
 
     t0 = time.perf_counter()
+    
+    info = MODEL_MAP[model_label]
+    data={
+        "weights_path": info["weights_path"],
+        "model_type": info["model_type"],
+        "conf": info["conf"],
+    }
+
     r = requests.post(
         f"{API_URL}/predict",
         files={"file": ("image.jpg", buf, "image/jpeg")},
-        data={
-            "weights_path": MODEL_MAP[model_label],
-            "model_type": _model_type(model_label),
-        },
-        timeout=60,
+        data=data,
     )
     dt = time.perf_counter() - t0
 

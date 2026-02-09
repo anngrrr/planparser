@@ -3,7 +3,7 @@ sdk: docker
 app_port: 7860
 ---
 # 🧩 planparser
-**Architectural plan elements detection** на базе **Ultralytics YOLO** с удобным **Gradio UI** и **FastAPI** API.
+**Architectural plan elements detection** на базе **Ultralytics YOLO** и **Faster R-CNN (TorchScript)** с удобным **Gradio UI** и **FastAPI** API.
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue)](#)
 [![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-black)](#)
@@ -15,7 +15,7 @@ app_port: 7860
 ---
 
 ## ✨ Что это
-planparser берет изображение плана, прогоняет через YOLO и показывает результат в удобном UI:
+planparser берет изображение плана, прогоняет через выбранную модель (YOLO или Faster R-CNN) и показывает результат в удобном UI:
 
 - 🖼️ изображение с bbox и подписями классов
 - 📋 таблицу-спецификацию (Element, Qty)
@@ -49,14 +49,17 @@ planparser берет изображение плана, прогоняет че
 ## 🧠 Архитектура
 ````mermaid
 flowchart LR
-  A[Gradio UI] -->|POST image + weights_path| B[FastAPI /predict]
-  B --> C[Ultralytics YOLO]
-  C --> B
+  A[Gradio UI] -->|POST image + weights_path + model_type + conf| B[FastAPI /predict]
+  B --> C{Model type}
+  C -->|yolo| D[Ultralytics YOLO]
+  C -->|fasterrcnn| E[TorchScript Faster R-CNN]
+  D --> B
+  E --> B
   B -->|detections JSON| A
-  A --> D[Render bbox + labels]
-  A --> E[Element schedule table]
-  A --> F[CSV export]
-  A --> G[Raw detections accordion]
+  A --> F[Render bbox + labels]
+  A --> G[Element schedule table]
+  A --> H[CSV export]
+  A --> I[Raw detections accordion]
 ````
 
 ---
@@ -95,7 +98,7 @@ uv sync
 API_URL="http://127.0.0.1:8000"
 MODEL_DIR="src/models"
 MODEL_1="yolo11l_custom.pt"
-MODEL_2="custom.pt"
+MODEL_2="fasterrcnn_resnet50.pt"
 EXAMPLES_DIR="src/examples"
 ````
 
@@ -121,7 +124,7 @@ uv run uvicorn planparser.api:app --host 0.0.0.0 --port 8000
 ### 2) Поднять UI
 
 ````bash
-uv run gradio planparser/app.py
+uv run python planparser/app.py
 ````
 
 Открыть:
@@ -144,6 +147,8 @@ Form-data:
 
 * `file`: изображение
 * `weights_path`: путь к `.pt` файлу весов (должен существовать на стороне API)
+* `model_type` (опционально): `yolo` или `fasterrcnn` (по умолчанию `yolo`)
+* `conf` (опционально): порог confidence (по умолчанию `0.25`)
 
 Пример ответа:
 
@@ -170,8 +175,8 @@ Form-data:
 
 ````env
 MODEL_DIR="src/models"
-MODEL_1="yolo11n.pt"
-MODEL_2="yolo11l.pt"
+MODEL_1="yolo11l_custom.pt"
+MODEL_2="fasterrcnn_resnet50.pt"
 ````
 
 ### Как выбираются веса
@@ -217,6 +222,8 @@ docker run --rm \
 ````bash
 yolo detect train model=yolo11n.pt data=src/data/data.yaml imgsz=640 epochs=50
 ````
+
+Для Faster R-CNN см. notebook: `notebooks/05_train-fasterrcnn-resnet50.ipynb`.
 
 ---
 

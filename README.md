@@ -3,7 +3,7 @@ sdk: docker
 app_port: 7860
 ---
 # 🧩 planparser
-**Architectural plan elements detection** на базе **Ultralytics YOLO** и **Faster R-CNN (TorchScript)** с удобным **Gradio UI** и **FastAPI** API.
+**Architectural plan elements detection** based on **Ultralytics YOLO** and **Faster R-CNN (TorchScript)** with a convenient **Gradio UI** and **FastAPI** API.
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue)](#)
 [![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-black)](#)
@@ -14,39 +14,39 @@ app_port: 7860
 
 ---
 
-## ✨ Что это
-planparser берет изображение плана, прогоняет через выбранную модель (YOLO или Faster R-CNN) и показывает результат в удобном UI:
+## ✨ What it is
+planparser takes a floor plan image, runs it through the selected model (YOLO or Faster R-CNN), and shows the result in a convenient UI:
 
-- 🖼️ изображение с bbox и подписями классов
-- 📋 таблицу-спецификацию (Element, Qty)
-- ⬇️ CSV файл для скачивания (element_schedule.csv)
-- 🧾 raw detections в JSON (class_id, class_name, confidence, xyxy)
-- ⏱️ время обработки
+- 🖼️ image with bboxes and class labels
+- 📋 schedule table (Element, Qty)
+- ⬇️ downloadable CSV file (element_schedule.csv)
+- 🧾 raw detections in JSON (class_id, class_name, confidence, xyxy)
+- ⏱️ processing time
 
 ---
 
-## 🍬 Фичи
-- 🖼️ Upload изображения + Examples
-- 🧠 выбор модели из списка
-- ⚡ Auto-run или ручной Submit
-- 🖍️ отрисовка bbox + нормализованные названия классов
-- 📋 element schedule в таблице (Element, Qty)
-- ⬇️ экспорт schedule в CSV
-- 📦 raw detections в JSON (в Accordion)
+## 🍬 Features
+- 🖼️ image upload + examples
+- 🧠 model selection from list
+- ⚡ auto-run or manual Submit
+- 🖍️ bbox rendering + normalized class names
+- 📋 element schedule in a table (Element, Qty)
+- ⬇️ schedule export to CSV
+- 📦 raw detections in JSON (in Accordion)
 - 🧰 FastAPI inference API
-- 🐳 контейнеризация и запуск через Docker
-- 🤗 доступ к уже развернутому приложению на HF Spaces
+- 🐳 containerization and run via Docker
+- 🤗 access to the already deployed app on HF Spaces
 
 ---
 
 ## 🤗 Web app
-Готовая веб-версия без локальной установки:
+Ready-to-use web version without local setup:
 
 [**Hugging Face Spaces**](https://huggingface.co/spaces/Ann-Grabetski/planparser)
 
 ---
 
-## 🧠 Архитектура
+## 🧠 Architecture
 ````mermaid
 flowchart LR
   A[Gradio UI] -->|POST image + weights_path + model_type + conf| B[FastAPI /predict]
@@ -64,23 +64,23 @@ flowchart LR
 
 ---
 
-## 🗂️ Структура проекта
+## 🗂️ Project structure
 
 ````text
 planparser/
-  app.py          # Gradio UI клиент
-  api.py          # FastAPI инференс сервер
+  app.py          # Gradio UI client
+  api.py          # FastAPI inference server
 src/
-  examples/       # примеры картинок (опционально)
-  models/         # веса *.pt (опционально)
-.env              # конфиг
+  examples/       # image examples (optional)
+  models/         # *.pt weights (optional)
+.env              # config
 ````
 
 ---
 
-## 🚀 Быстрый старт
+## 🚀 Quick start
 
-Установка:
+Installation:
 
 ```bash
 git clone https://github.com/anngrrr/planparser.git
@@ -90,9 +90,9 @@ uv sync
 
 ---
 
-## ⚙️ Конфиг (.env)
+## ⚙️ Config (.env)
 
-Минимум:
+Minimum:
 
 ````env
 API_URL="http://127.0.0.1:8000"
@@ -102,32 +102,32 @@ MODEL_2="fasterrcnn_resnet50.pt"
 EXAMPLES_DIR="src/examples"
 ````
 
-Таблица:
+Table:
 
-| Переменная           | Зачем                 |
+| Variable             | Purpose               |
 | -------------------- | --------------------- |
-| `API_URL`            | адрес FastAPI для UI  |
-| `MODEL_DIR`          | папка с весами        |
-| `MODEL_1`, `MODEL_2` | имена файлов *.pt     |
-| `EXAMPLES_DIR`       | папка примеров для UI |
+| `API_URL`            | FastAPI address for UI |
+| `MODEL_DIR`          | weights folder        |
+| `MODEL_1`, `MODEL_2` | *.pt file names       |
+| `EXAMPLES_DIR`       | examples folder for UI |
 
 ---
 
-## 🏃 Запуск локально
+## 🏃 Run locally
 
-### 1) Поднять API
+### 1) Start API
 
 ````bash
 uv run uvicorn planparser.api:app --host 0.0.0.0 --port 8000
 ````
 
-### 2) Поднять UI
+### 2) Start UI
 
 ````bash
 uv run python planparser/app.py
 ````
 
-Открыть:
+Open:
 
 * API: `http://127.0.0.1:8000`
 * UI: `http://127.0.0.1:7860`
@@ -136,7 +136,7 @@ uv run python planparser/app.py
 ## 🔌 API
 
 ### `GET /health`
-Ответ:
+Response:
 ````json
 {"ok": true}
 ````
@@ -145,12 +145,12 @@ uv run python planparser/app.py
 
 Form-data:
 
-* `file`: изображение
-* `weights_path`: путь к `.pt` файлу весов (должен существовать на стороне API)
-* `model_type` (опционально): `yolo` или `fasterrcnn` (по умолчанию `yolo`)
-* `conf` (опционально): порог confidence (по умолчанию `0.25`)
+* `file`: image
+* `weights_path`: path to `.pt` weights file (must exist on the API side)
+* `model_type` (optional): `yolo` or `fasterrcnn` (default `yolo`)
+* `conf` (optional): confidence threshold (default `0.25`)
 
-Пример ответа:
+Response example:
 
 ````json
 {
@@ -167,11 +167,11 @@ Form-data:
 
 ---
 
-## 🧩 Модели
+## 🧩 Models
 
-### Локальные веса
+### Local weights
 
-Положи `.pt` в `MODEL_DIR` и укажи в `.env`:
+Put `.pt` files into `MODEL_DIR` and specify them in `.env`:
 
 ````env
 MODEL_DIR="src/models"
@@ -179,18 +179,18 @@ MODEL_1="yolo11l_custom.pt"
 MODEL_2="fasterrcnn_resnet50.pt"
 ````
 
-### Как выбираются веса
-Веса выбираются в UI и передаются в API как `weights_path`.
+### How weights are selected
+Weights are selected in the UI and sent to the API as `weights_path`.
 
 UI:
-- берет `MODEL_DIR`
-- собирает список доступных моделей из `.env` (`MODEL_1`, `MODEL_2`)
-- отображает их в Dropdown
+- reads `MODEL_DIR`
+- builds the list of available models from `.env` (`MODEL_1`, `MODEL_2`)
+- shows them in the Dropdown
 
 API:
-- принимает `weights_path`
-- проверяет что это существующий `.pt` файл
-- кэширует загруженные модели по абсолютному пути (чтобы повторно не грузить веса)
+- accepts `weights_path`
+- checks that it is an existing `.pt` file
+- caches loaded models by absolute path (to avoid reloading weights)
 
 ---
 
@@ -215,26 +215,26 @@ docker run --rm \
 
 ---
 
-## 🧪 Трейнинг (если надо)
+## 🧪 Training (if needed)
 
-Минимальный пример (Ultralytics):
+Minimal example (Ultralytics):
 
 ````bash
 yolo detect train model=yolo11n.pt data=src/data/data.yaml imgsz=640 epochs=50
 ````
 
-Для Faster R-CNN см. notebook: `notebooks/05_train-fasterrcnn-resnet50.ipynb`.
+For Faster R-CNN see notebook: `notebooks/05_train-fasterrcnn-resnet50.ipynb`.
 
 ---
 
-## 📎 Датасеты и лицензии
+## 📎 Datasets and licenses
 
 ### Dataset
-Используется датасет [**Floorplan details Fork**](https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1), лицензия **CC BY 4.0**
+Uses dataset [**Floorplan details Fork**](https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1), license **CC BY 4.0**
 
 ### Ultralytics YOLO
 
-Ultralytics YOLO распространяется по **AGPL-3.0**
+Ultralytics YOLO is distributed under **AGPL-3.0**
 
 ---
 
@@ -249,4 +249,4 @@ Ultralytics YOLO распространяется по **AGPL-3.0**
 
 ## 📜 License
 
-Смотри файл `LICENSE`.
+See `LICENSE` file.

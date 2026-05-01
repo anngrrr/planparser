@@ -2,251 +2,105 @@
 sdk: docker
 app_port: 7860
 ---
-# 🧩 planparser
-**Architectural plan elements detection** based on **Ultralytics YOLO** and **Faster R-CNN (TorchScript)** with a convenient **Gradio UI** and **FastAPI** API.
+
+# planparser
+
+Object detection для архитектурных планов: Gradio-демо, FastAPI-сервис инференса и две обученные модели: **YOLO11 Large** и **Faster R-CNN ResNet-50 FPN**.
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue)](#)
-[![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-black)](#)
 [![Gradio](https://img.shields.io/badge/Gradio-UI-orange)](#)
-[![FastAPI](https://img.shields.io/badge/FastAPI-API-teal)](#)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED)](#)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-Spaces-yellow)](#)
+[![FastAPI](https://img.shields.io/badge/FastAPI-inference-teal)](#)
+[![YOLO11](https://img.shields.io/badge/YOLO11-mAP50%200.937-black)](#)
+[![Faster R-CNN](https://img.shields.io/badge/Faster%20R--CNN-mAP50%200.728-ee4c2c)](#)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-live%20demo-yellow)](https://huggingface.co/spaces/Ann-Grabetski/planparser)
 
----
+[English README](README_EN.md)
 
-## ✨ What it is
-planparser takes a floor plan image, runs it through the selected model (YOLO or Faster R-CNN), and shows the result in a convenient UI:
+![planparser app screenshot](docs/assets/app-screenshot.png)
 
-- 🖼️ image with bboxes and class labels
-- 📋 schedule table (Element, Qty)
-- ⬇️ downloadable CSV file (element_schedule.csv)
-- 🧾 raw detections in JSON (class_id, class_name, confidence, xyxy)
-- ⏱️ processing time
+## Демо
 
----
+[Открыть приложение на Hugging Face Spaces](https://huggingface.co/spaces/Ann-Grabetski/planparser)
 
-## 🍬 Features
-- 🖼️ image upload + examples
-- 🧠 model selection from list
-- ⚡ auto-run or manual Submit
-- 🖍️ bbox rendering + normalized class names
-- 📋 element schedule in a table (Element, Qty)
-- ⬇️ schedule export to CSV
-- 📦 raw detections in JSON (in Accordion)
-- 🧰 FastAPI inference API
-- 🐳 containerization and run via Docker
-- 🤗 access to the already deployed app on HF Spaces
+Приложение принимает изображение плана и возвращает разметку с bounding boxes, ведомость элементов, raw JSON, время обработки и CSV-файл для скачивания.
 
----
+[Видео-разбор на YouTube](https://youtu.be/v34W_xNp6WU)
 
-## 🤗 Web app
-Ready-to-use web version without local setup:
+## Результаты обучения
 
-[**Hugging Face Spaces**](https://huggingface.co/spaces/Ann-Grabetski/planparser)
+![training results](docs/assets/training-results.png)
 
----
+| Модель | Настройка обучения | Результат на validation |
+| --- | --- | --- |
+| YOLO11 Large | Ultralytics 8.3.249, PyTorch 2.8, Tesla T4, image size 640, batch 16, AdamW. Stage A: 30 эпох, `freeze=10`, `lr0=0.003`; Stage B: 120 эпох, `freeze=0`, `lr0=0.001`. | `P=0.901`, `R=0.898`, `mAP50=0.937`, `mAP50-95=0.736` на 207 validation images / 4,824 objects. Inference: 19.8 ms на изображение на T4. |
+| Faster R-CNN ResNet-50 FPN | Torchvision Faster R-CNN с ImageNet-pretrained ResNet-50 FPN, custom anchors, 25 эпох, batch 16, AdamW `lr=3e-4`, `weight_decay=3e-4`, cosine LR schedule, Albumentations augmentation. | Лучший залогированный результат около 24-й эпохи: `P=0.84`, `R=0.87`, `mAP50=0.728`, `mAP50-95=0.497`. Модель экспортирована в TorchScript. |
 
-## 🧠 Architecture
-````mermaid
+YOLO11 выбрана основной моделью для демо: она дала более высокий mAP и более быстрый inference при простой схеме сервинга.
+
+## Датасет
+
+Проект использует [Floorplan details Fork](https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1), лицензия **CC BY 4.0**.
+
+| Метрика | Значение |
+| --- | ---: |
+| Изображения | 1,033 |
+| Train / validation / test | 722 / 207 / 104 |
+| Классы объектов | 15 |
+| Bounding boxes | 24,996 |
+
+Классы: `bathtub`, `bed`, `bed2`, `chair`, `door`, `door2`, `shower`, `sink`, `sofa1`, `sofa2`, `sofa3`, `stove`, `table`, `toilet`, `vanity`.
+
+![dataset distribution](docs/assets/dataset-distribution.png)
+
+## Архитектура
+
+```mermaid
 flowchart LR
-  A[Gradio UI] -->|POST image + weights_path + model_type + conf| B[FastAPI /predict]
-  B --> C{Model type}
-  C -->|yolo| D[Ultralytics YOLO]
-  C -->|fasterrcnn| E[TorchScript Faster R-CNN]
+  A["Gradio UI"] -->|"image + model + confidence"| B["FastAPI /predict"]
+  B --> C{"model_type"}
+  C -->|"yolo"| D["YOLO11 Large"]
+  C -->|"fasterrcnn"| E["TorchScript Faster R-CNN"]
   D --> B
   E --> B
-  B -->|detections JSON| A
-  A --> F[Render bbox + labels]
-  A --> G[Element schedule table]
-  A --> H[CSV export]
-  A --> I[Raw detections accordion]
-````
+  B -->|"detections JSON"| A
+  A --> F["Annotated image"]
+  A --> G["Element schedule"]
+  A --> H["CSV export"]
+```
 
----
-
-## 🗂️ Project structure
-
-````text
-planparser/
-  app.py          # Gradio UI client
-  api.py          # FastAPI inference server
-src/
-  examples/       # image examples (optional)
-  models/         # *.pt weights (optional)
-.env              # config
-````
-
----
-
-## 🚀 Quick start
-
-Installation:
+## Локальный запуск
 
 ```bash
 git clone https://github.com/anngrrr/planparser.git
 cd planparser
 uv sync
-````
+```
 
----
+Создать `.env`:
 
-## ⚙️ Config (.env)
-
-Minimum:
-
-````env
+```env
 API_URL="http://127.0.0.1:8000"
 MODEL_DIR="src/models"
 MODEL_1="yolo11l_custom.pt"
 MODEL_2="fasterrcnn_resnet50.pt"
 EXAMPLES_DIR="src/examples"
-````
+```
 
-Table:
+Запустить API и UI в разных терминалах:
 
-| Variable             | Purpose               |
-| -------------------- | --------------------- |
-| `API_URL`            | FastAPI address for UI |
-| `MODEL_DIR`          | weights folder        |
-| `MODEL_1`, `MODEL_2` | *.pt file names       |
-| `EXAMPLES_DIR`       | examples folder for UI |
-
----
-
-## 🏃 Run locally
-
-### 1) Start API
-
-````bash
+```bash
 uv run uvicorn planparser.api:app --host 0.0.0.0 --port 8000
-````
+```
 
-### 2) Start UI
-
-````bash
+```bash
 uv run python planparser/app.py
-````
+```
 
-Open:
+Открыть `http://127.0.0.1:7860`. Документация API доступна на `http://127.0.0.1:8000/docs`.
 
-* API: `http://127.0.0.1:8000`
-* UI: `http://127.0.0.1:7860`
+## Ноутбуки
 
----
-## 🔌 API
+- `notebooks/04_finetune_yolo11l.ipynb` - двухстадийный fine-tuning YOLO11 и validation.
+- `notebooks/05_train-fasterrcnn-resnet50.ipynb` - обучение Faster R-CNN, validation и экспорт в TorchScript.
 
-### `GET /health`
-Response:
-````json
-{"ok": true}
-````
-
-### `POST /predict`
-
-Form-data:
-
-* `file`: image
-* `weights_path`: path to `.pt` weights file (must exist on the API side)
-* `model_type` (optional): `yolo` or `fasterrcnn` (default `yolo`)
-* `conf` (optional): confidence threshold (default `0.25`)
-
-Response example:
-
-````json
-{
-  "detections": [
-    {
-      "class_id": 1,
-      "class_name": "door",
-      "confidence": 0.87,
-      "xyxy": [12.3, 45.6, 78.9, 120.1]
-    }
-  ]
-}
-````
-
----
-
-## 🧩 Models
-
-### Local weights
-
-Put `.pt` files into `MODEL_DIR` and specify them in `.env`:
-
-````env
-MODEL_DIR="src/models"
-MODEL_1="yolo11l_custom.pt"
-MODEL_2="fasterrcnn_resnet50.pt"
-````
-
-### How weights are selected
-Weights are selected in the UI and sent to the API as `weights_path`.
-
-UI:
-- reads `MODEL_DIR`
-- builds the list of available models from `.env` (`MODEL_1`, `MODEL_2`)
-- shows them in the Dropdown
-
-API:
-- accepts `weights_path`
-- checks that it is an existing `.pt` file
-- caches loaded models by absolute path (to avoid reloading weights)
-
----
-
-## 🐳 Docker
-
-### Build
-
-````bash
-docker build -t planparser .
-````
-
-### Run
-
-````bash
-docker run --rm \
-  -p 7860:7860 -p 8000:8000 \
-  --env-file .env \
-  -v "$(pwd)/src/models:/app/src/models" \
-  -v "$(pwd)/src/examples:/app/src/examples" \
-  planparser
-````
-
----
-
-## 🧪 Training (if needed)
-
-Minimal example (Ultralytics):
-
-````bash
-yolo detect train model=yolo11n.pt data=src/data/data.yaml imgsz=640 epochs=50
-````
-
-For Faster R-CNN see notebook: `notebooks/05_train-fasterrcnn-resnet50.ipynb`.
-
----
-
-## 📎 Datasets and licenses
-
-### Dataset
-Uses dataset [**Floorplan details Fork**](https://universe.roboflow.com/research-g8szb/floorplan-details-fork/dataset/1), license **CC BY 4.0**
-
-### Ultralytics YOLO
-
-Ultralytics YOLO is distributed under **AGPL-3.0**
-
----
-
-## ❤️ Credits
-
-* Ultralytics YOLO
-* Gradio
-* FastAPI
-* Hugging Face
-
----
-
-## 📜 License
-
-See `LICENSE` file.
+Ultralytics YOLO распространяется по лицензии **AGPL-3.0**. Лицензия проекта: см. [LICENSE](LICENSE).
